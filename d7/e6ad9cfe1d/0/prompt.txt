@@ -1,0 +1,1 @@
+Ok next let's try single node editing - or maybe as first step have a selection and moving mode

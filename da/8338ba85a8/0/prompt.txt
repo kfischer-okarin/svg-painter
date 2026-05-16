@@ -1,0 +1,13 @@
+hum so that is not what I wanted.... so I guess the liquify is closer to my idea? if possible I want the whole line to naturally deform to still keep the shape/curve (I guess that would be the normal gradient?) though I can also see that there should be probably an inflectionpoint somewhere where it would then instead turn into waveformy down up down (assuming it was a up down simple hill before of whcih we grabbed the tip and pulled it down too much) not sure how difficult that is mathematically
+
+---
+
+hum so that is not what I wanted.... if possible I want the whole surrounding line to naturally deform to still keep the shape/curve (I guess that would be the normal gradient?) though I can also see that there should be probably an inflectionpoint somewhere where it would then instead turn into waveformy down up down (assuming it was a up down simple hill before of whcih we grabbed the tip and pulled it down too much) not sure how difficult that is mathematically ... this sounds like that would probably also spontaneously give birth to new nodes if the path gets more complex.... not sure what are good approaches/tradeoffs in that tool design space
+
+---
+
+[Image #2] [Image #3]
+
+Slightly better but still almost as bad as before..... I attach before after images... that sticking out triangle thing shape is not... good :grimace:
+
+also about those every 1.5px distance... really? looks like way less points to me ... and why are they then spread out unequally?

@@ -14,6 +14,18 @@
         <button id="tool-pen" class="tool active" title="Pen (P)">pen</button>
         <button id="tool-width" class="tool" title="Width brush (W) — shift to thin">width</button>
       </div>
+      <div class="tools">
+        <button id="undo" class="icon-btn" title="Undo (Cmd/Ctrl-Z)" disabled>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+          </svg>
+        </button>
+        <button id="redo" class="icon-btn" title="Redo (Cmd-Shift-Z / Ctrl-Y)" disabled>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path fill="currentColor" d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
+          </svg>
+        </button>
+      </div>
       <label>size <input id="width" type="range" min="1" max="80" value="12" /></label>
       <label>brush <input id="brush" type="range" min="10" max="200" value="50" /></label>
       <label>color <input id="color" type="color" value="#222222" /></label>

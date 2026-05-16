@@ -21,6 +21,8 @@ const clearBtn = document.getElementById('clear') as HTMLButtonElement;
 const exportBtn = document.getElementById('export') as HTMLButtonElement;
 const toolPenBtn = document.getElementById('tool-pen') as HTMLButtonElement;
 const toolWidthBtn = document.getElementById('tool-width') as HTMLButtonElement;
+const undoBtn = document.getElementById('undo') as HTMLButtonElement;
+const redoBtn = document.getElementById('redo') as HTMLButtonElement;
 const brushCursor = document.getElementById('brush-cursor') as HTMLDivElement;
 
 const state = {
@@ -55,6 +57,8 @@ function main() {
   exportBtn.addEventListener('click', exportSvg);
   toolPenBtn.addEventListener('click', () => setTool('pen'));
   toolWidthBtn.addEventListener('click', () => setTool('width'));
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
 
   document.addEventListener('keydown', onKeyDown);
 
@@ -280,6 +284,7 @@ function pushHistory() {
   undoStack.push(snapshot());
   if (undoStack.length > MAX_HISTORY) undoStack.shift();
   redoStack.length = 0;
+  updateHistoryButtons();
 }
 
 function undo() {
@@ -287,6 +292,7 @@ function undo() {
   if (!snap) return;
   redoStack.push(snapshot());
   restore(snap);
+  updateHistoryButtons();
 }
 
 function redo() {
@@ -294,6 +300,12 @@ function redo() {
   if (!snap) return;
   undoStack.push(snapshot());
   restore(snap);
+  updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+  undoBtn.disabled = undoStack.length === 0;
+  redoBtn.disabled = redoStack.length === 0;
 }
 
 function snapshot(): Snapshot {

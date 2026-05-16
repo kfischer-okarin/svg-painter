@@ -5,11 +5,13 @@ const MIN_WIDTH = 1;
 const MAX_WIDTH = 200;
 const BRUSH_STRENGTH = 2;
 const SAMPLE_MIN_DIST = 1.5;
+const MAX_HISTORY = 50;
 
 type Tool = 'pen' | 'width';
 type Point = { x: number; y: number };
 type Sample = Point & { w: number };
 type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
+type Snapshot = { color: string; samples: Sample[] }[];
 
 const svg = document.getElementById('canvas') as unknown as SVGSVGElement;
 const widthInput = document.getElementById('width') as HTMLInputElement;
@@ -30,6 +32,9 @@ const state = {
   brushRadius: Number(brushInput.value),
   color: colorInput.value,
 };
+
+const undoStack: Snapshot[] = [];
+const redoStack: Snapshot[] = [];
 
 main();
 
@@ -82,6 +87,18 @@ function onPointerUp(e: PointerEvent) {
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) redo();
+    else undo();
+    return;
+  }
+  if (mod && e.key.toLowerCase() === 'y') {
+    e.preventDefault();
+    redo();
+    return;
+  }
   if (e.key === 'p') setTool('pen');
   else if (e.key === 'w') setTool('width');
 }
@@ -94,6 +111,7 @@ function setTool(t: Tool) {
 }
 
 function penDown(e: PointerEvent) {
+  pushHistory();
   const el = document.createElementNS(SVG_NS, 'path');
   el.setAttribute('fill', state.color);
   const stroke: Stroke = { color: state.color, samples: [sampleFromEvent(e)], el };
@@ -114,6 +132,7 @@ function penMove(e: PointerEvent) {
 }
 
 function widthDown(e: PointerEvent) {
+  pushHistory();
   state.brushing = true;
   applyBrush(canvasPoint(e), e.shiftKey);
 }
@@ -252,8 +271,49 @@ function syncCanvasSize() {
 }
 
 function clearAll() {
+  pushHistory();
   state.strokes = [];
   while (svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function pushHistory() {
+  undoStack.push(snapshot());
+  if (undoStack.length > MAX_HISTORY) undoStack.shift();
+  redoStack.length = 0;
+}
+
+function undo() {
+  const snap = undoStack.pop();
+  if (!snap) return;
+  redoStack.push(snapshot());
+  restore(snap);
+}
+
+function redo() {
+  const snap = redoStack.pop();
+  if (!snap) return;
+  undoStack.push(snapshot());
+  restore(snap);
+}
+
+function snapshot(): Snapshot {
+  return state.strokes.map((s) => ({
+    color: s.color,
+    samples: s.samples.map((p) => ({ x: p.x, y: p.y, w: p.w })),
+  }));
+}
+
+function restore(snap: Snapshot) {
+  state.strokes = [];
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const data of snap) {
+    const el = document.createElementNS(SVG_NS, 'path');
+    el.setAttribute('fill', data.color);
+    const stroke: Stroke = { color: data.color, samples: data.samples, el };
+    el.setAttribute('d', strokeToPathD(stroke));
+    svg.appendChild(el);
+    state.strokes.push(stroke);
+  }
 }
 
 function exportSvg() {

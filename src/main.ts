@@ -112,21 +112,43 @@ function ribbonPath(samples: Sample[]): string {
 }
 
 function offsetRails(samples: Sample[]): { left: Point[]; right: Point[] } {
+  const normals = smoothedNormals(samples);
   const left: Point[] = [];
   const right: Point[] = [];
+  for (let i = 0; i < samples.length; i++) {
+    const half = samples[i].w / 2;
+    left.push({ x: samples[i].x + normals[i].x * half, y: samples[i].y + normals[i].y * half });
+    right.push({ x: samples[i].x - normals[i].x * half, y: samples[i].y - normals[i].y * half });
+  }
+  return { left, right };
+}
+
+function smoothedNormals(samples: Sample[]): Point[] {
+  const raw = rawNormals(samples);
+  if (raw.length <= 2) return raw;
+  const smoothed: Point[] = new Array(raw.length);
+  smoothed[0] = raw[0];
+  smoothed[raw.length - 1] = raw[raw.length - 1];
+  for (let i = 1; i < raw.length - 1; i++) {
+    const nx = raw[i - 1].x + raw[i].x + raw[i + 1].x;
+    const ny = raw[i - 1].y + raw[i].y + raw[i + 1].y;
+    const len = Math.hypot(nx, ny) || 1;
+    smoothed[i] = { x: nx / len, y: ny / len };
+  }
+  return smoothed;
+}
+
+function rawNormals(samples: Sample[]): Point[] {
+  const normals: Point[] = [];
   for (let i = 0; i < samples.length; i++) {
     const prev = samples[i - 1] ?? samples[i];
     const next = samples[i + 1] ?? samples[i];
     const tx = next.x - prev.x;
     const ty = next.y - prev.y;
     const len = Math.hypot(tx, ty) || 1;
-    const nx = -ty / len;
-    const ny = tx / len;
-    const half = samples[i].w / 2;
-    left.push({ x: samples[i].x + nx * half, y: samples[i].y + ny * half });
-    right.push({ x: samples[i].x - nx * half, y: samples[i].y - ny * half });
+    normals.push({ x: -ty / len, y: tx / len });
   }
-  return { left, right };
+  return normals;
 }
 
 function distance(a: Point, b: Point): number {

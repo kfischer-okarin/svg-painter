@@ -1,21 +1,33 @@
 import './style.css';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const MIN_WIDTH = 1;
+const MAX_WIDTH = 200;
+const BRUSH_STRENGTH = 2;
+const SAMPLE_MIN_DIST = 1.5;
 
+type Tool = 'pen' | 'width';
 type Point = { x: number; y: number };
 type Sample = Point & { w: number };
-type Stroke = { color: string; samples: Sample[] };
+type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
 
 const svg = document.getElementById('canvas') as unknown as SVGSVGElement;
 const widthInput = document.getElementById('width') as HTMLInputElement;
+const brushInput = document.getElementById('brush') as HTMLInputElement;
 const colorInput = document.getElementById('color') as HTMLInputElement;
 const clearBtn = document.getElementById('clear') as HTMLButtonElement;
 const exportBtn = document.getElementById('export') as HTMLButtonElement;
+const toolPenBtn = document.getElementById('tool-pen') as HTMLButtonElement;
+const toolWidthBtn = document.getElementById('tool-width') as HTMLButtonElement;
+const brushCursor = document.getElementById('brush-cursor') as HTMLDivElement;
 
 const state = {
+  tool: 'pen' as Tool,
+  strokes: [] as Stroke[],
   current: null as Stroke | null,
-  currentEl: null as SVGPathElement | null,
+  brushing: false,
   baseWidth: Number(widthInput.value),
+  brushRadius: Number(brushInput.value),
   color: colorInput.value,
 };
 
@@ -28,56 +40,128 @@ function main() {
   widthInput.addEventListener('input', () => {
     state.baseWidth = Number(widthInput.value);
   });
+  brushInput.addEventListener('input', () => {
+    state.brushRadius = Number(brushInput.value);
+  });
   colorInput.addEventListener('input', () => {
     state.color = colorInput.value;
   });
   clearBtn.addEventListener('click', clearAll);
   exportBtn.addEventListener('click', exportSvg);
+  toolPenBtn.addEventListener('click', () => setTool('pen'));
+  toolWidthBtn.addEventListener('click', () => setTool('width'));
+
+  document.addEventListener('keydown', onKeyDown);
 
   svg.addEventListener('pointerdown', onPointerDown);
   svg.addEventListener('pointermove', onPointerMove);
   svg.addEventListener('pointerup', onPointerUp);
   svg.addEventListener('pointercancel', onPointerUp);
+  svg.addEventListener('pointerleave', () => {
+    brushCursor.style.display = 'none';
+  });
 }
 
 function onPointerDown(e: PointerEvent) {
   svg.setPointerCapture(e.pointerId);
-  const stroke: Stroke = { color: state.color, samples: [sampleFromEvent(e)] };
-  const el = document.createElementNS(SVG_NS, 'path');
-  el.setAttribute('fill', stroke.color);
-  el.setAttribute('d', strokeToPathD(stroke));
-  svg.appendChild(el);
-  state.current = stroke;
-  state.currentEl = el;
+  if (state.tool === 'pen') penDown(e);
+  else widthDown(e);
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (!state.current || !state.currentEl) return;
-  const sample = sampleFromEvent(e);
-  const last = state.current.samples[state.current.samples.length - 1];
-  if (distance(last, sample) < 1.5) return;
-  state.current.samples.push(sample);
-  state.currentEl.setAttribute('d', strokeToPathD(state.current));
+  updateBrushCursor(e);
+  if (state.tool === 'pen') penMove(e);
+  else widthMove(e);
 }
 
 function onPointerUp(e: PointerEvent) {
   if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
   state.current = null;
-  state.currentEl = null;
+  state.brushing = false;
+}
+
+function onKeyDown(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.key === 'p') setTool('pen');
+  else if (e.key === 'w') setTool('width');
+}
+
+function setTool(t: Tool) {
+  state.tool = t;
+  toolPenBtn.classList.toggle('active', t === 'pen');
+  toolWidthBtn.classList.toggle('active', t === 'width');
+  if (t !== 'width') brushCursor.style.display = 'none';
+}
+
+function penDown(e: PointerEvent) {
+  const el = document.createElementNS(SVG_NS, 'path');
+  el.setAttribute('fill', state.color);
+  const stroke: Stroke = { color: state.color, samples: [sampleFromEvent(e)], el };
+  el.setAttribute('d', strokeToPathD(stroke));
+  svg.appendChild(el);
+  state.strokes.push(stroke);
+  state.current = stroke;
+}
+
+function penMove(e: PointerEvent) {
+  if (!state.current) return;
+  const stroke = state.current;
+  const sample = sampleFromEvent(e);
+  const last = stroke.samples[stroke.samples.length - 1];
+  if (distance(last, sample) < SAMPLE_MIN_DIST) return;
+  stroke.samples.push(sample);
+  stroke.el.setAttribute('d', strokeToPathD(stroke));
+}
+
+function widthDown(e: PointerEvent) {
+  state.brushing = true;
+  applyBrush(canvasPoint(e), e.shiftKey);
+}
+
+function widthMove(e: PointerEvent) {
+  if (!state.brushing) return;
+  applyBrush(canvasPoint(e), e.shiftKey);
+}
+
+function applyBrush(p: Point, shrink: boolean) {
+  const delta = shrink ? -BRUSH_STRENGTH : BRUSH_STRENGTH;
+  for (const stroke of state.strokes) {
+    let touched = false;
+    for (const s of stroke.samples) {
+      const d = distance(p, s);
+      if (d > state.brushRadius) continue;
+      const falloff = 1 - d / state.brushRadius;
+      s.w = clamp(s.w + delta * falloff, MIN_WIDTH, MAX_WIDTH);
+      touched = true;
+    }
+    if (touched) stroke.el.setAttribute('d', strokeToPathD(stroke));
+  }
+}
+
+function updateBrushCursor(e: PointerEvent) {
+  if (state.tool !== 'width') {
+    brushCursor.style.display = 'none';
+    return;
+  }
+  const size = state.brushRadius * 2;
+  brushCursor.style.display = 'block';
+  brushCursor.style.left = `${e.clientX}px`;
+  brushCursor.style.top = `${e.clientY}px`;
+  brushCursor.style.width = `${size}px`;
+  brushCursor.style.height = `${size}px`;
 }
 
 function sampleFromEvent(e: PointerEvent): Sample {
+  const { x, y } = canvasPoint(e);
+  return { x, y, w: effectiveWidth(e) };
+}
+
+function canvasPoint(e: PointerEvent): Point {
   const rect = svg.getBoundingClientRect();
-  return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top,
-    w: effectiveWidth(e),
-  };
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
 function effectiveWidth(e: PointerEvent): number {
-  // Pointer Events report pressure=0.5 for devices without pressure (mouse).
-  // Use the slider width as-is for those; otherwise scale by pressure.
   const hasPressure = e.pointerType !== 'mouse' && e.pressure > 0 && e.pressure !== 0.5;
   return hasPressure ? state.baseWidth * e.pressure * 2 : state.baseWidth;
 }
@@ -155,6 +239,10 @@ function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
 function syncCanvasSize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -164,6 +252,7 @@ function syncCanvasSize() {
 }
 
 function clearAll() {
+  state.strokes = [];
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 }
 

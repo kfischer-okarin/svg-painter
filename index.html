@@ -8,8 +8,14 @@
   </head>
   <body>
     <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="brush-cursor"></div>
     <div id="toolbar">
-      <label>width <input id="width" type="range" min="1" max="80" value="12" /></label>
+      <div class="tools">
+        <button id="tool-pen" class="tool active" title="Pen (P)">pen</button>
+        <button id="tool-width" class="tool" title="Width brush (W) — shift to thin">width</button>
+      </div>
+      <label>size <input id="width" type="range" min="1" max="80" value="12" /></label>
+      <label>brush <input id="brush" type="range" min="10" max="200" value="50" /></label>
       <label>color <input id="color" type="color" value="#222222" /></label>
       <button id="clear">clear</button>
       <button id="export">export svg</button>

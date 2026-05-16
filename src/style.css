@@ -21,6 +21,16 @@ html, body {
   background: #ffffff;
 }
 
+#brush-cursor {
+  position: fixed;
+  pointer-events: none;
+  border: 1.5px dashed #666;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  box-sizing: border-box;
+}
+
 #toolbar {
   position: fixed;
   top: 12px;
@@ -51,8 +61,20 @@ html, body {
   background: #fafafa;
   border-radius: 4px;
   cursor: pointer;
+  color: inherit;
 }
 
 #toolbar button:hover {
   background: #efefef;
+}
+
+#toolbar .tools {
+  display: flex;
+  gap: 4px;
+}
+
+#toolbar .tool.active {
+  background: #222;
+  color: #fff;
+  border-color: #222;
 }

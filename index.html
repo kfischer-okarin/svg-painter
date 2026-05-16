@@ -4,10 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>scaffold</title>
+    <title>svg painter</title>
   </head>
   <body>
-    <div id="app"></div>
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="toolbar">
+      <label>width <input id="width" type="range" min="1" max="80" value="12" /></label>
+      <label>color <input id="color" type="color" value="#222222" /></label>
+      <button id="clear">clear</button>
+      <button id="export">export svg</button>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

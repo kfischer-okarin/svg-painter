@@ -38,3 +38,5 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - Smoothed normals (no more crumpled rails on tight pointer wobble)
 - Width brush (pen / width tool toggle, shift-drag to thin)
 - Toolbar readable in dark mode
+- Undo / redo with snapshot stack (`Cmd/Ctrl-Z`, `Cmd-Shift-Z` / `Ctrl-Y`, capped at 50)
+- Undo / redo toolbar buttons with disabled state

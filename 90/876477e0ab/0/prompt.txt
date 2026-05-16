@@ -1,0 +1,9 @@
+Note in CLAUDE.md (which does not exist yet) that you should always be aware and update BACKLOG.md during work
+
+---
+
+You can use a `@` reference for the file and skip the "read it" - just enforce that it's being read
+
+---
+
+ok so now go and update it with what we just did

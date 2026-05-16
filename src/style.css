@@ -47,6 +47,10 @@ html, body {
   cursor: grabbing;
 }
 
+.handle {
+  cursor: move;
+}
+
 #toolbar {
   position: fixed;
   top: 12px;

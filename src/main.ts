@@ -12,6 +12,7 @@ type Point = { x: number; y: number };
 type Sample = Point & { w: number };
 type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
 type Snapshot = { color: string; samples: Sample[] }[];
+type HandleHit = { stroke: Stroke; index: number };
 
 const svg = document.getElementById('canvas') as unknown as SVGSVGElement;
 const widthInput = document.getElementById('width') as HTMLInputElement;
@@ -35,6 +36,7 @@ const state = {
   selected: null as Stroke | null,
   dragging: false,
   dragLast: null as Point | null,
+  draggingNode: null as HandleHit | null,
   baseWidth: Number(widthInput.value),
   brushRadius: Number(brushInput.value),
   color: colorInput.value,
@@ -42,6 +44,8 @@ const state = {
 
 const undoStack: Snapshot[] = [];
 const redoStack: Snapshot[] = [];
+const handleByEl = new Map<SVGCircleElement, HandleHit>();
+let handleGroup: SVGGElement | null = null;
 
 main();
 
@@ -129,10 +133,7 @@ function setTool(t: Tool) {
   toolSelectBtn.classList.toggle('active', t === 'select');
   svg.classList.toggle('tool-select', t === 'select');
   if (t !== 'width') brushCursor.style.display = 'none';
-  if (t !== 'select') {
-    state.selected = null;
-    updateSelectionRect();
-  }
+  if (t !== 'select') deselect();
 }
 
 function penDown(e: PointerEvent) {
@@ -158,11 +159,20 @@ function penMove(e: PointerEvent) {
 
 function selectDown(e: PointerEvent) {
   const target = e.target;
+  if (target instanceof SVGCircleElement) {
+    const hit = handleByEl.get(target);
+    if (hit) {
+      selectStroke(hit.stroke);
+      pushHistory();
+      state.draggingNode = hit;
+      svg.classList.add('dragging');
+      return;
+    }
+  }
   if (target instanceof SVGPathElement) {
     const stroke = state.strokes.find((s) => s.el === target);
     if (stroke) {
-      state.selected = stroke;
-      updateSelectionRect();
+      selectStroke(stroke);
       pushHistory();
       state.dragging = true;
       state.dragLast = canvasPoint(e);
@@ -170,25 +180,99 @@ function selectDown(e: PointerEvent) {
       return;
     }
   }
-  state.selected = null;
-  updateSelectionRect();
+  deselect();
 }
 
 function selectMove(e: PointerEvent) {
-  if (!state.dragging || !state.selected || !state.dragLast) return;
-  const now = canvasPoint(e);
-  const dx = now.x - state.dragLast.x;
-  const dy = now.y - state.dragLast.y;
-  state.dragLast = now;
-  translateStroke(state.selected, dx, dy);
-  state.selected.el.setAttribute('d', strokeToPathD(state.selected));
-  updateSelectionRect();
+  if (state.draggingNode) {
+    dragNode(state.draggingNode, canvasPoint(e));
+    return;
+  }
+  if (state.dragging && state.selected && state.dragLast) {
+    const now = canvasPoint(e);
+    const dx = now.x - state.dragLast.x;
+    const dy = now.y - state.dragLast.y;
+    state.dragLast = now;
+    translateStroke(state.selected, dx, dy);
+    state.selected.el.setAttribute('d', strokeToPathD(state.selected));
+    refreshHandlePositions(state.selected);
+    updateSelectionRect();
+  }
 }
 
 function selectUp() {
   state.dragging = false;
   state.dragLast = null;
+  state.draggingNode = null;
   svg.classList.remove('dragging');
+}
+
+function selectStroke(stroke: Stroke) {
+  if (state.selected === stroke) return;
+  state.selected = stroke;
+  buildHandles(stroke);
+  updateSelectionRect();
+}
+
+function deselect() {
+  if (!state.selected) return;
+  state.selected = null;
+  clearHandles();
+  updateSelectionRect();
+}
+
+function dragNode(hit: HandleHit, p: Point) {
+  const sample = hit.stroke.samples[hit.index];
+  sample.x = p.x;
+  sample.y = p.y;
+  hit.stroke.el.setAttribute('d', strokeToPathD(hit.stroke));
+  refreshHandlePositions(hit.stroke);
+  updateSelectionRect();
+}
+
+function buildHandles(stroke: Stroke) {
+  clearHandles();
+  const g = ensureHandleGroup();
+  for (let i = 0; i < stroke.samples.length; i++) {
+    const s = stroke.samples[i];
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', String(s.x));
+    c.setAttribute('cy', String(s.y));
+    c.setAttribute('r', '4');
+    c.setAttribute('fill', '#fff');
+    c.setAttribute('stroke', '#0a84ff');
+    c.setAttribute('stroke-width', '1.5');
+    c.setAttribute('class', 'handle');
+    g.appendChild(c);
+    handleByEl.set(c, { stroke, index: i });
+  }
+}
+
+function refreshHandlePositions(stroke: Stroke) {
+  if (state.selected !== stroke || !handleGroup) return;
+  const circles = handleGroup.children;
+  if (circles.length !== stroke.samples.length) {
+    buildHandles(stroke);
+    return;
+  }
+  for (let i = 0; i < circles.length; i++) {
+    const c = circles[i] as SVGCircleElement;
+    c.setAttribute('cx', String(stroke.samples[i].x));
+    c.setAttribute('cy', String(stroke.samples[i].y));
+  }
+}
+
+function clearHandles() {
+  handleByEl.clear();
+  if (handleGroup) handleGroup.replaceChildren();
+}
+
+function ensureHandleGroup(): SVGGElement {
+  if (handleGroup && handleGroup.isConnected) return handleGroup;
+  handleGroup = document.createElementNS(SVG_NS, 'g');
+  handleGroup.setAttribute('id', 'handles');
+  svg.appendChild(handleGroup);
+  return handleGroup;
 }
 
 function translateStroke(stroke: Stroke, dx: number, dy: number) {
@@ -204,8 +288,7 @@ function deleteSelected() {
   const i = state.strokes.indexOf(state.selected);
   if (i >= 0) state.strokes.splice(i, 1);
   state.selected.el.remove();
-  state.selected = null;
-  updateSelectionRect();
+  deselect();
 }
 
 function updateSelectionRect() {
@@ -377,6 +460,7 @@ function syncCanvasSize() {
 
 function clearAll() {
   pushHistory();
+  deselect();
   state.strokes = [];
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 }
@@ -417,8 +501,7 @@ function snapshot(): Snapshot {
 }
 
 function restore(snap: Snapshot) {
-  state.selected = null;
-  updateSelectionRect();
+  deselect();
   state.strokes = [];
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   for (const data of snap) {
@@ -435,6 +518,7 @@ function exportSvg() {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.removeAttribute('id');
   clone.setAttribute('xmlns', SVG_NS);
+  clone.querySelector('#handles')?.remove();
   const blob = new Blob([clone.outerHTML], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

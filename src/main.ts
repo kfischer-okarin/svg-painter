@@ -100,9 +100,13 @@ function dotPath(s: Sample): string {
 
 function ribbonPath(samples: Sample[]): string {
   const { left, right } = offsetRails(samples);
+  const startR = samples[0].w / 2;
+  const endR = samples[samples.length - 1].w / 2;
   const parts: string[] = [`M ${left[0].x} ${left[0].y}`];
   for (let i = 1; i < left.length; i++) parts.push(`L ${left[i].x} ${left[i].y}`);
-  for (let i = right.length - 1; i >= 0; i--) parts.push(`L ${right[i].x} ${right[i].y}`);
+  parts.push(`A ${endR} ${endR} 0 0 0 ${right[right.length - 1].x} ${right[right.length - 1].y}`);
+  for (let i = right.length - 2; i >= 0; i--) parts.push(`L ${right[i].x} ${right[i].y}`);
+  parts.push(`A ${startR} ${startR} 0 0 0 ${left[0].x} ${left[0].y}`);
   parts.push('Z');
   return parts.join(' ');
 }

@@ -31,6 +31,22 @@ html, body {
   box-sizing: border-box;
 }
 
+#selection-rect {
+  position: fixed;
+  pointer-events: none;
+  border: 1.5px dashed #0a84ff;
+  display: none;
+  box-sizing: border-box;
+}
+
+#canvas.tool-select {
+  cursor: default;
+}
+
+#canvas.tool-select.dragging {
+  cursor: grabbing;
+}
+
 #toolbar {
   position: fixed;
   top: 12px;

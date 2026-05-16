@@ -7,7 +7,7 @@ const BRUSH_STRENGTH = 2;
 const SAMPLE_MIN_DIST = 1.5;
 const MAX_HISTORY = 50;
 
-type Tool = 'pen' | 'width';
+type Tool = 'pen' | 'width' | 'select';
 type Point = { x: number; y: number };
 type Sample = Point & { w: number };
 type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
@@ -21,15 +21,20 @@ const clearBtn = document.getElementById('clear') as HTMLButtonElement;
 const exportBtn = document.getElementById('export') as HTMLButtonElement;
 const toolPenBtn = document.getElementById('tool-pen') as HTMLButtonElement;
 const toolWidthBtn = document.getElementById('tool-width') as HTMLButtonElement;
+const toolSelectBtn = document.getElementById('tool-select') as HTMLButtonElement;
 const undoBtn = document.getElementById('undo') as HTMLButtonElement;
 const redoBtn = document.getElementById('redo') as HTMLButtonElement;
 const brushCursor = document.getElementById('brush-cursor') as HTMLDivElement;
+const selectionRect = document.getElementById('selection-rect') as HTMLDivElement;
 
 const state = {
   tool: 'pen' as Tool,
   strokes: [] as Stroke[],
   current: null as Stroke | null,
   brushing: false,
+  selected: null as Stroke | null,
+  dragging: false,
+  dragLast: null as Point | null,
   baseWidth: Number(widthInput.value),
   brushRadius: Number(brushInput.value),
   color: colorInput.value,
@@ -57,6 +62,7 @@ function main() {
   exportBtn.addEventListener('click', exportSvg);
   toolPenBtn.addEventListener('click', () => setTool('pen'));
   toolWidthBtn.addEventListener('click', () => setTool('width'));
+  toolSelectBtn.addEventListener('click', () => setTool('select'));
   undoBtn.addEventListener('click', undo);
   redoBtn.addEventListener('click', redo);
 
@@ -74,19 +80,22 @@ function main() {
 function onPointerDown(e: PointerEvent) {
   svg.setPointerCapture(e.pointerId);
   if (state.tool === 'pen') penDown(e);
-  else widthDown(e);
+  else if (state.tool === 'width') widthDown(e);
+  else selectDown(e);
 }
 
 function onPointerMove(e: PointerEvent) {
   updateBrushCursor(e);
   if (state.tool === 'pen') penMove(e);
-  else widthMove(e);
+  else if (state.tool === 'width') widthMove(e);
+  else selectMove(e);
 }
 
 function onPointerUp(e: PointerEvent) {
   if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
   state.current = null;
   state.brushing = false;
+  selectUp();
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -103,15 +112,27 @@ function onKeyDown(e: KeyboardEvent) {
     redo();
     return;
   }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
+    e.preventDefault();
+    deleteSelected();
+    return;
+  }
   if (e.key === 'p') setTool('pen');
   else if (e.key === 'w') setTool('width');
+  else if (e.key === 's') setTool('select');
 }
 
 function setTool(t: Tool) {
   state.tool = t;
   toolPenBtn.classList.toggle('active', t === 'pen');
   toolWidthBtn.classList.toggle('active', t === 'width');
+  toolSelectBtn.classList.toggle('active', t === 'select');
+  svg.classList.toggle('tool-select', t === 'select');
   if (t !== 'width') brushCursor.style.display = 'none';
+  if (t !== 'select') {
+    state.selected = null;
+    updateSelectionRect();
+  }
 }
 
 function penDown(e: PointerEvent) {
@@ -133,6 +154,86 @@ function penMove(e: PointerEvent) {
   if (distance(last, sample) < SAMPLE_MIN_DIST) return;
   stroke.samples.push(sample);
   stroke.el.setAttribute('d', strokeToPathD(stroke));
+}
+
+function selectDown(e: PointerEvent) {
+  const target = e.target;
+  if (target instanceof SVGPathElement) {
+    const stroke = state.strokes.find((s) => s.el === target);
+    if (stroke) {
+      state.selected = stroke;
+      updateSelectionRect();
+      pushHistory();
+      state.dragging = true;
+      state.dragLast = canvasPoint(e);
+      svg.classList.add('dragging');
+      return;
+    }
+  }
+  state.selected = null;
+  updateSelectionRect();
+}
+
+function selectMove(e: PointerEvent) {
+  if (!state.dragging || !state.selected || !state.dragLast) return;
+  const now = canvasPoint(e);
+  const dx = now.x - state.dragLast.x;
+  const dy = now.y - state.dragLast.y;
+  state.dragLast = now;
+  translateStroke(state.selected, dx, dy);
+  state.selected.el.setAttribute('d', strokeToPathD(state.selected));
+  updateSelectionRect();
+}
+
+function selectUp() {
+  state.dragging = false;
+  state.dragLast = null;
+  svg.classList.remove('dragging');
+}
+
+function translateStroke(stroke: Stroke, dx: number, dy: number) {
+  for (const s of stroke.samples) {
+    s.x += dx;
+    s.y += dy;
+  }
+}
+
+function deleteSelected() {
+  if (!state.selected) return;
+  pushHistory();
+  const i = state.strokes.indexOf(state.selected);
+  if (i >= 0) state.strokes.splice(i, 1);
+  state.selected.el.remove();
+  state.selected = null;
+  updateSelectionRect();
+}
+
+function updateSelectionRect() {
+  if (!state.selected) {
+    selectionRect.style.display = 'none';
+    return;
+  }
+  const { minX, minY, maxX, maxY } = strokeBbox(state.selected);
+  selectionRect.style.display = 'block';
+  selectionRect.style.left = `${minX}px`;
+  selectionRect.style.top = `${minY}px`;
+  selectionRect.style.width = `${maxX - minX}px`;
+  selectionRect.style.height = `${maxY - minY}px`;
+}
+
+function strokeBbox(stroke: Stroke): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const s of stroke.samples) {
+    const r = s.w / 2;
+    if (s.x - r < minX) minX = s.x - r;
+    if (s.x + r > maxX) maxX = s.x + r;
+    if (s.y - r < minY) minY = s.y - r;
+    if (s.y + r > maxY) maxY = s.y + r;
+  }
+  return { minX, minY, maxX, maxY };
 }
 
 function widthDown(e: PointerEvent) {
@@ -316,6 +417,8 @@ function snapshot(): Snapshot {
 }
 
 function restore(snap: Snapshot) {
+  state.selected = null;
+  updateSelectionRect();
   state.strokes = [];
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   for (const data of snap) {

@@ -1,0 +1,9 @@
+Yes having an undo sounds good - i definitely also want something for smoothing though I feel maybe a "select an interval of path points" -> interpolate width sounds like a better controllable approach to rather than a brush
+
+---
+
+Yes having an undo sounds good - i definitely also want something for smoothing though I feel maybe a "select an interval of path points" -> interpolate width sounds like a better controllable approach to rather than a brush - but that would be a backlog item definitely (we should start managing a low ceremony markdown based backlog of ideas somehow somewhere)
+
+---
+
+I mean a button in the toolbar with the typical undo/redo arrows would be nice

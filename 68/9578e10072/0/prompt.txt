@@ -1,0 +1,9 @@
+wow this is much much better :D I think it's because of the new bezier based lines but I like the with brush behaviour much better now too
+
+---
+
+Can you write that as a bullet point into CLAUDE.md instead I prefer those kind of design and other preferences to be properly managed inside the repository
+
+---
+
+Also can you write a little beginning section about the tech stack and the reasoning behind it also very short please

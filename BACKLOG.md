@@ -8,6 +8,8 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 
 - **Width interpolation across an interval** — select a range of samples on a stroke, set start/end width, interpolate across. Preferred over the brush for precision work.
 - **Liquify / push-pull** — drag a region of an existing stroke to deform it locally, no handles.
+- **Physics / Laplacian node drag** — phase-2 deformation mode that produces wave-form overshoot when pulling past the natural envelope (springs with stiffness, or constrained Laplacian editing). Current Gaussian-falloff drag only produces smooth dips, not waves.
+- **Adaptive sample density** — subdivide samples when the stroke is stretched (long segments), decimate when compressed. Important once we add deformation tools that meaningfully change arc length.
 - **Stroke transform** — once selected, rotate / scale / mirror (currently only move is supported).
 - **Stroke smoothing** — fit raw samples to a curve at stroke-end (Catmull-Rom or similar), reducing sample count.
 - **Snap separate paths together** — endpoints magnet to nearby endpoints of other strokes.
@@ -40,4 +42,6 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - Undo / redo with snapshot stack (`Cmd/Ctrl-Z`, `Cmd-Shift-Z` / `Ctrl-Y`, capped at 50)
 - Undo / redo toolbar buttons with disabled state
 - Select tool: click to select, drag to move, Delete to remove, dashed bbox overlay
-- Single-node editing: drag any sample handle on the selected stroke to move that point
+- Node editing with Gaussian falloff: drag a handle and surrounding samples follow with arc-length-weighted influence (reuses brush slider for σ)
+- Ribbon rendered with quadratic bezier smoothing through sample midpoints (no more visible polyline angles between samples)
+- Coalesced pointer events captured for denser, more uniform pen sampling

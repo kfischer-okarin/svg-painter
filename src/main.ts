@@ -13,6 +13,13 @@ type Sample = Point & { w: number };
 type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
 type Snapshot = { color: string; samples: Sample[] }[];
 type HandleHit = { stroke: Stroke; index: number };
+type NodeDrag = {
+  stroke: Stroke;
+  index: number;
+  origPositions: Point[];
+  arcDists: number[];
+  startPoint: Point;
+};
 
 const svg = document.getElementById('canvas') as unknown as SVGSVGElement;
 const widthInput = document.getElementById('width') as HTMLInputElement;
@@ -36,7 +43,7 @@ const state = {
   selected: null as Stroke | null,
   dragging: false,
   dragLast: null as Point | null,
-  draggingNode: null as HandleHit | null,
+  draggingNode: null as NodeDrag | null,
   baseWidth: Number(widthInput.value),
   brushRadius: Number(brushInput.value),
   color: colorInput.value,
@@ -150,11 +157,16 @@ function penDown(e: PointerEvent) {
 function penMove(e: PointerEvent) {
   if (!state.current) return;
   const stroke = state.current;
-  const sample = sampleFromEvent(e);
-  const last = stroke.samples[stroke.samples.length - 1];
-  if (distance(last, sample) < SAMPLE_MIN_DIST) return;
-  stroke.samples.push(sample);
-  stroke.el.setAttribute('d', strokeToPathD(stroke));
+  const events = e.getCoalescedEvents?.() ?? [e];
+  let changed = false;
+  for (const ev of events.length > 0 ? events : [e]) {
+    const sample = sampleFromEvent(ev);
+    const last = stroke.samples[stroke.samples.length - 1];
+    if (distance(last, sample) < SAMPLE_MIN_DIST) continue;
+    stroke.samples.push(sample);
+    changed = true;
+  }
+  if (changed) stroke.el.setAttribute('d', strokeToPathD(stroke));
 }
 
 function selectDown(e: PointerEvent) {
@@ -164,7 +176,13 @@ function selectDown(e: PointerEvent) {
     if (hit) {
       selectStroke(hit.stroke);
       pushHistory();
-      state.draggingNode = hit;
+      state.draggingNode = {
+        stroke: hit.stroke,
+        index: hit.index,
+        origPositions: hit.stroke.samples.map((s) => ({ x: s.x, y: s.y })),
+        arcDists: computeArcDistances(hit.stroke.samples, hit.index),
+        startPoint: canvasPoint(e),
+      };
       svg.classList.add('dragging');
       return;
     }
@@ -205,6 +223,7 @@ function selectUp() {
   state.dragLast = null;
   state.draggingNode = null;
   svg.classList.remove('dragging');
+  if (state.tool !== 'width') brushCursor.style.display = 'none';
 }
 
 function selectStroke(stroke: Stroke) {
@@ -221,13 +240,30 @@ function deselect() {
   updateSelectionRect();
 }
 
-function dragNode(hit: HandleHit, p: Point) {
-  const sample = hit.stroke.samples[hit.index];
-  sample.x = p.x;
-  sample.y = p.y;
-  hit.stroke.el.setAttribute('d', strokeToPathD(hit.stroke));
-  refreshHandlePositions(hit.stroke);
+function dragNode(drag: NodeDrag, p: Point) {
+  const sigma = Math.max(1, state.brushRadius);
+  const dx = p.x - drag.startPoint.x;
+  const dy = p.y - drag.startPoint.y;
+  for (let i = 0; i < drag.stroke.samples.length; i++) {
+    const weight = Math.exp(-((drag.arcDists[i] / sigma) ** 2));
+    drag.stroke.samples[i].x = drag.origPositions[i].x + dx * weight;
+    drag.stroke.samples[i].y = drag.origPositions[i].y + dy * weight;
+  }
+  drag.stroke.el.setAttribute('d', strokeToPathD(drag.stroke));
+  refreshHandlePositions(drag.stroke);
   updateSelectionRect();
+}
+
+function computeArcDistances(samples: Sample[], from: number): number[] {
+  const N = samples.length;
+  const dists = new Array<number>(N).fill(0);
+  for (let j = from + 1; j < N; j++) {
+    dists[j] = dists[j - 1] + distance(samples[j - 1], samples[j]);
+  }
+  for (let j = from - 1; j >= 0; j--) {
+    dists[j] = dists[j + 1] + distance(samples[j + 1], samples[j]);
+  }
+  return dists;
 }
 
 function buildHandles(stroke: Stroke) {
@@ -346,7 +382,8 @@ function applyBrush(p: Point, shrink: boolean) {
 }
 
 function updateBrushCursor(e: PointerEvent) {
-  if (state.tool !== 'width') {
+  const visible = state.tool === 'width' || state.draggingNode !== null;
+  if (!visible) {
     brushCursor.style.display = 'none';
     return;
   }
@@ -393,13 +430,30 @@ function ribbonPath(samples: Sample[]): string {
   const { left, right } = offsetRails(samples);
   const startR = samples[0].w / 2;
   const endR = samples[samples.length - 1].w / 2;
+  const reversedRight = [...right].reverse();
   const parts: string[] = [`M ${left[0].x} ${left[0].y}`];
-  for (let i = 1; i < left.length; i++) parts.push(`L ${left[i].x} ${left[i].y}`);
+  parts.push(smoothRailD(left));
   parts.push(`A ${endR} ${endR} 0 0 0 ${right[right.length - 1].x} ${right[right.length - 1].y}`);
-  for (let i = right.length - 2; i >= 0; i--) parts.push(`L ${right[i].x} ${right[i].y}`);
+  parts.push(smoothRailD(reversedRight));
   parts.push(`A ${startR} ${startR} 0 0 0 ${left[0].x} ${left[0].y}`);
   parts.push('Z');
   return parts.join(' ');
+}
+
+function smoothRailD(pts: Point[]): string {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `L ${pts[1].x} ${pts[1].y}`;
+  const cmds: string[] = [];
+  const m0x = (pts[0].x + pts[1].x) / 2;
+  const m0y = (pts[0].y + pts[1].y) / 2;
+  cmds.push(`L ${m0x} ${m0y}`);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].x + pts[i + 1].x) / 2;
+    const my = (pts[i].y + pts[i + 1].y) / 2;
+    cmds.push(`Q ${pts[i].x} ${pts[i].y} ${mx} ${my}`);
+  }
+  cmds.push(`L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`);
+  return cmds.join(' ');
 }
 
 function offsetRails(samples: Sample[]): { left: Point[]; right: Point[] } {

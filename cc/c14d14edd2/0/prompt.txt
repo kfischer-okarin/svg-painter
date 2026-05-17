@@ -1,0 +1,1 @@
+hum can you somehow make the line rendering method a parameter of the line? not sure how that would work - maybe a popup with a radio selection that is visible while the line is seelcted? since I'm not sure I like this method.... or maybe would always like it... some of the line rendering looks worse than before even though now the points all match

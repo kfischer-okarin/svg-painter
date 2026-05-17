@@ -46,4 +46,5 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - Select tool: click to select, drag to move, Delete to remove, dashed bbox overlay
 - Node editing with Gaussian falloff: drag a handle and surrounding samples follow with arc-length-weighted influence (reuses brush slider for σ)
 - Ribbon rendered with Catmull-Rom cubic bezier smoothing — curve passes through every sample, so node handles sit on the rendered line even after large deformations
+- Per-stroke render mode (catmull "through points" vs quadratic "between points") chosen via floating panel under the selection bbox; serialized in undo
 - Coalesced pointer events captured for denser, more uniform pen sampling

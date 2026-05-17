@@ -8,10 +8,11 @@ const SAMPLE_MIN_DIST = 1.5;
 const MAX_HISTORY = 50;
 
 type Tool = 'pen' | 'width' | 'select';
+type RenderMode = 'catmull' | 'quadratic';
 type Point = { x: number; y: number };
 type Sample = Point & { w: number };
-type Stroke = { color: string; samples: Sample[]; el: SVGPathElement };
-type Snapshot = { color: string; samples: Sample[] }[];
+type Stroke = { color: string; samples: Sample[]; el: SVGPathElement; renderMode: RenderMode };
+type Snapshot = { color: string; samples: Sample[]; renderMode: RenderMode }[];
 type HandleHit = { stroke: Stroke; index: number };
 type NodeDrag = {
   stroke: Stroke;
@@ -34,6 +35,8 @@ const undoBtn = document.getElementById('undo') as HTMLButtonElement;
 const redoBtn = document.getElementById('redo') as HTMLButtonElement;
 const brushCursor = document.getElementById('brush-cursor') as HTMLDivElement;
 const selectionRect = document.getElementById('selection-rect') as HTMLDivElement;
+const strokeOptions = document.getElementById('stroke-options') as HTMLDivElement;
+const renderModeRadios = document.querySelectorAll<HTMLInputElement>('input[name="render-mode"]');
 
 const state = {
   tool: 'pen' as Tool,
@@ -76,6 +79,7 @@ function main() {
   toolSelectBtn.addEventListener('click', () => setTool('select'));
   undoBtn.addEventListener('click', undo);
   redoBtn.addEventListener('click', redo);
+  renderModeRadios.forEach((r) => r.addEventListener('change', onRenderModeChange));
 
   document.addEventListener('keydown', onKeyDown);
 
@@ -147,7 +151,12 @@ function penDown(e: PointerEvent) {
   pushHistory();
   const el = document.createElementNS(SVG_NS, 'path');
   el.setAttribute('fill', state.color);
-  const stroke: Stroke = { color: state.color, samples: [sampleFromEvent(e)], el };
+  const stroke: Stroke = {
+    color: state.color,
+    samples: [sampleFromEvent(e)],
+    el,
+    renderMode: 'catmull',
+  };
   el.setAttribute('d', strokeToPathD(stroke));
   svg.appendChild(el);
   state.strokes.push(stroke);
@@ -330,6 +339,7 @@ function deleteSelected() {
 function updateSelectionRect() {
   if (!state.selected) {
     selectionRect.style.display = 'none';
+    strokeOptions.style.display = 'none';
     return;
   }
   const { minX, minY, maxX, maxY } = strokeBbox(state.selected);
@@ -338,6 +348,21 @@ function updateSelectionRect() {
   selectionRect.style.top = `${minY}px`;
   selectionRect.style.width = `${maxX - minX}px`;
   selectionRect.style.height = `${maxY - minY}px`;
+  strokeOptions.style.display = 'flex';
+  strokeOptions.style.left = `${minX}px`;
+  strokeOptions.style.top = `${maxY + 8}px`;
+  renderModeRadios.forEach((r) => {
+    r.checked = r.value === state.selected!.renderMode;
+  });
+}
+
+function onRenderModeChange(e: Event) {
+  if (!state.selected) return;
+  const value = (e.target as HTMLInputElement).value as RenderMode;
+  if (state.selected.renderMode === value) return;
+  pushHistory();
+  state.selected.renderMode = value;
+  state.selected.el.setAttribute('d', strokeToPathD(state.selected));
 }
 
 function strokeBbox(stroke: Stroke): { minX: number; minY: number; maxX: number; maxY: number } {
@@ -414,7 +439,7 @@ function strokeToPathD(stroke: Stroke): string {
   const { samples } = stroke;
   if (samples.length === 0) return '';
   if (samples.length === 1) return dotPath(samples[0]);
-  return ribbonPath(samples);
+  return ribbonPath(stroke);
 }
 
 function dotPath(s: Sample): string {
@@ -426,21 +451,23 @@ function dotPath(s: Sample): string {
   );
 }
 
-function ribbonPath(samples: Sample[]): string {
+function ribbonPath(stroke: Stroke): string {
+  const samples = stroke.samples;
   const { left, right } = offsetRails(samples);
   const startR = samples[0].w / 2;
   const endR = samples[samples.length - 1].w / 2;
   const reversedRight = [...right].reverse();
+  const smooth = stroke.renderMode === 'catmull' ? smoothRailCatmull : smoothRailQuadratic;
   const parts: string[] = [`M ${left[0].x} ${left[0].y}`];
-  parts.push(smoothRailD(left));
+  parts.push(smooth(left));
   parts.push(`A ${endR} ${endR} 0 0 0 ${right[right.length - 1].x} ${right[right.length - 1].y}`);
-  parts.push(smoothRailD(reversedRight));
+  parts.push(smooth(reversedRight));
   parts.push(`A ${startR} ${startR} 0 0 0 ${left[0].x} ${left[0].y}`);
   parts.push('Z');
   return parts.join(' ');
 }
 
-function smoothRailD(pts: Point[]): string {
+function smoothRailCatmull(pts: Point[]): string {
   if (pts.length < 2) return '';
   if (pts.length === 2) return `L ${pts[1].x} ${pts[1].y}`;
   const cmds: string[] = [];
@@ -456,6 +483,22 @@ function smoothRailD(pts: Point[]): string {
     const c2y = p2.y - (p3.y - p1.y) / 6;
     cmds.push(`C ${c1x} ${c1y} ${c2x} ${c2y} ${p2.x} ${p2.y}`);
   }
+  return cmds.join(' ');
+}
+
+function smoothRailQuadratic(pts: Point[]): string {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `L ${pts[1].x} ${pts[1].y}`;
+  const cmds: string[] = [];
+  const m0x = (pts[0].x + pts[1].x) / 2;
+  const m0y = (pts[0].y + pts[1].y) / 2;
+  cmds.push(`L ${m0x} ${m0y}`);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].x + pts[i + 1].x) / 2;
+    const my = (pts[i].y + pts[i + 1].y) / 2;
+    cmds.push(`Q ${pts[i].x} ${pts[i].y} ${mx} ${my}`);
+  }
+  cmds.push(`L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`);
   return cmds.join(' ');
 }
 
@@ -553,6 +596,7 @@ function updateHistoryButtons() {
 function snapshot(): Snapshot {
   return state.strokes.map((s) => ({
     color: s.color,
+    renderMode: s.renderMode,
     samples: s.samples.map((p) => ({ x: p.x, y: p.y, w: p.w })),
   }));
 }
@@ -564,7 +608,12 @@ function restore(snap: Snapshot) {
   for (const data of snap) {
     const el = document.createElementNS(SVG_NS, 'path');
     el.setAttribute('fill', data.color);
-    const stroke: Stroke = { color: data.color, samples: data.samples, el };
+    const stroke: Stroke = {
+      color: data.color,
+      samples: data.samples,
+      el,
+      renderMode: data.renderMode,
+    };
     el.setAttribute('d', strokeToPathD(stroke));
     svg.appendChild(el);
     state.strokes.push(stroke);

@@ -10,6 +10,11 @@
     <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
     <div id="brush-cursor"></div>
     <div id="selection-rect"></div>
+    <div id="stroke-options">
+      <span class="label">render:</span>
+      <label><input type="radio" name="render-mode" value="catmull" checked /> through points</label>
+      <label><input type="radio" name="render-mode" value="quadratic" /> between points</label>
+    </div>
     <div id="toolbar">
       <div class="tools">
         <button id="tool-pen" class="tool active" title="Pen (P)">pen</button>

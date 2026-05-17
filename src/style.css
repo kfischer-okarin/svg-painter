@@ -51,6 +51,33 @@ html, body {
   cursor: move;
 }
 
+#stroke-options {
+  position: fixed;
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  display: none;
+  gap: 10px;
+  align-items: center;
+  color: #222;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+#stroke-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#stroke-options .label {
+  color: #888;
+}
+
 #toolbar {
   position: fixed;
   top: 12px;

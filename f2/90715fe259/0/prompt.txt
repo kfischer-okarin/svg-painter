@@ -1,0 +1,17 @@
+ok then let's do a quick save/load feature I guess just storing/loading the json data structure is enough? - maybe also attach a dated version identifier to the json so we can migrate old data (and document the format in docs/file-format.md
+
+---
+
+ok then let's do a quick save/load feature I guess just storing/loading the json data structure is enough? - maybe also attach a version identifier v1 to the json so we can migrate old data (and document the v1 format in docs/file-format.md
+
+---
+
+I edited the format doc a bit - make the fields not a table but a enumeration and include the information about versioning inside the version format description
+
+---
+
+I edited the format doc a bit - make the fields not a table but a enumeration and include the information about versioning inside the version field description
+
+---
+
+hmm I don't really like that either... Separate top-level fields and the description of the stroke elements into separat sections

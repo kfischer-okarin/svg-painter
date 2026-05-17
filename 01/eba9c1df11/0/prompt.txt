@@ -1,0 +1,2 @@
+[Image #4]
+I selected and draw a node... and it's like this.... nodes stopping to be exactly on the line anymore - I guess this would be solved by some kind of adaptive sample density ? Can you diagnose this just visually like this or would it be helpful for you to have the actual data structure somehow for better analysis - I guess it's soon time to also add a save/load mechanism of "file format", too

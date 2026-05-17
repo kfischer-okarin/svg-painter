@@ -6,6 +6,7 @@ const MAX_WIDTH = 200;
 const BRUSH_STRENGTH = 2;
 const SAMPLE_MIN_DIST = 1.5;
 const MAX_HISTORY = 50;
+const FILE_VERSION = 1;
 
 type Tool = 'pen' | 'width' | 'select';
 type RenderMode = 'catmull' | 'quadratic';
@@ -28,6 +29,8 @@ const brushInput = document.getElementById('brush') as HTMLInputElement;
 const colorInput = document.getElementById('color') as HTMLInputElement;
 const clearBtn = document.getElementById('clear') as HTMLButtonElement;
 const exportBtn = document.getElementById('export') as HTMLButtonElement;
+const saveBtn = document.getElementById('save') as HTMLButtonElement;
+const loadBtn = document.getElementById('load') as HTMLButtonElement;
 const toolPenBtn = document.getElementById('tool-pen') as HTMLButtonElement;
 const toolWidthBtn = document.getElementById('tool-width') as HTMLButtonElement;
 const toolSelectBtn = document.getElementById('tool-select') as HTMLButtonElement;
@@ -74,6 +77,8 @@ function main() {
   });
   clearBtn.addEventListener('click', clearAll);
   exportBtn.addEventListener('click', exportSvg);
+  saveBtn.addEventListener('click', saveFile);
+  loadBtn.addEventListener('click', loadFile);
   toolPenBtn.addEventListener('click', () => setTool('pen'));
   toolWidthBtn.addEventListener('click', () => setTool('width'));
   toolSelectBtn.addEventListener('click', () => setTool('select'));
@@ -625,11 +630,86 @@ function exportSvg() {
   clone.removeAttribute('id');
   clone.setAttribute('xmlns', SVG_NS);
   clone.querySelector('#handles')?.remove();
-  const blob = new Blob([clone.outerHTML], { type: 'image/svg+xml' });
+  triggerDownload(
+    new Blob([clone.outerHTML], { type: 'image/svg+xml' }),
+    `painting-${Date.now()}.svg`,
+  );
+}
+
+function saveFile() {
+  const data = { version: FILE_VERSION, strokes: snapshot() };
+  triggerDownload(
+    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    `painting-${Date.now()}.json`,
+  );
+}
+
+function loadFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json,.json';
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    file.text().then(loadFromText).catch(reportLoadError);
+  });
+  input.click();
+}
+
+function loadFromText(text: string) {
+  try {
+    const data = JSON.parse(text) as unknown;
+    const snap = migrate(data);
+    undoStack.length = 0;
+    redoStack.length = 0;
+    restore(snap);
+    updateHistoryButtons();
+  } catch (err) {
+    reportLoadError(err);
+  }
+}
+
+function migrate(data: unknown): Snapshot {
+  if (!data || typeof data !== 'object') throw new Error('file is not a JSON object');
+  const obj = data as { version?: unknown; strokes?: unknown };
+  if (obj.version !== 1) throw new Error(`unsupported file version: ${String(obj.version)}`);
+  if (!Array.isArray(obj.strokes)) throw new Error('strokes field is missing or not an array');
+  return obj.strokes.map(parseStrokeV1);
+}
+
+function parseStrokeV1(s: unknown): Snapshot[number] {
+  if (!s || typeof s !== 'object') throw new Error('stroke must be an object');
+  const obj = s as { color?: unknown; renderMode?: unknown; samples?: unknown };
+  if (typeof obj.color !== 'string') throw new Error('stroke.color must be a string');
+  if (obj.renderMode !== 'catmull' && obj.renderMode !== 'quadratic') {
+    throw new Error(`unknown renderMode: ${String(obj.renderMode)}`);
+  }
+  if (!Array.isArray(obj.samples)) throw new Error('stroke.samples must be an array');
+  return {
+    color: obj.color,
+    renderMode: obj.renderMode,
+    samples: obj.samples.map(parseSampleV1),
+  };
+}
+
+function parseSampleV1(s: unknown): Sample {
+  if (!s || typeof s !== 'object') throw new Error('sample must be an object');
+  const obj = s as { x?: unknown; y?: unknown; w?: unknown };
+  if (typeof obj.x !== 'number' || typeof obj.y !== 'number' || typeof obj.w !== 'number') {
+    throw new Error('sample fields x, y, w must be numbers');
+  }
+  return { x: obj.x, y: obj.y, w: obj.w };
+}
+
+function reportLoadError(err: unknown) {
+  alert(`Failed to load: ${err instanceof Error ? err.message : String(err)}`);
+}
+
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `painting-${Date.now()}.svg`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

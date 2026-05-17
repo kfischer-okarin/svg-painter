@@ -23,7 +23,6 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 
 ### Workflow
 
-- **Save / load file format** — JSON serialization of strokes (color + samples). Lets us share repro data, version drawings, persist work across sessions.
 - **Persistence** — autosave strokes to localStorage and restore on reload.
 - **Layers** — group strokes; hide / lock / reorder.
 - **Color palette** — quick-pick recent / favorite colors instead of opening the system picker.
@@ -47,4 +46,5 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - Node editing with Gaussian falloff: drag a handle and surrounding samples follow with arc-length-weighted influence (reuses brush slider for σ)
 - Ribbon rendered with Catmull-Rom cubic bezier smoothing — curve passes through every sample, so node handles sit on the rendered line even after large deformations
 - Per-stroke render mode (catmull "through points" vs quadratic "between points") chosen via floating panel under the selection bbox; serialized in undo
+- JSON save / load (v1 format, documented in `docs/file-format.md`, migration hook in place)
 - Coalesced pointer events captured for denser, more uniform pen sampling

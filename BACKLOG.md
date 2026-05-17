@@ -10,6 +10,7 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - **Liquify / push-pull** — drag a region of an existing stroke to deform it locally, no handles.
 - **Physics / Laplacian node drag** — phase-2 deformation mode that produces wave-form overshoot when pulling past the natural envelope (springs with stiffness, or constrained Laplacian editing). Current Gaussian-falloff drag only produces smooth dips, not waves.
 - **Adaptive sample density** — subdivide samples when the stroke is stretched (long segments), decimate when compressed. Important once we add deformation tools that meaningfully change arc length.
+- **Centripetal Catmull-Rom** — replace uniform parameterization with `sqrt(distance)`-weighted to eliminate occasional overshoot near sharp curvature.
 - **Stroke transform** — once selected, rotate / scale / mirror (currently only move is supported).
 - **Stroke smoothing** — fit raw samples to a curve at stroke-end (Catmull-Rom or similar), reducing sample count.
 - **Snap separate paths together** — endpoints magnet to nearby endpoints of other strokes.
@@ -22,6 +23,7 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 
 ### Workflow
 
+- **Save / load file format** — JSON serialization of strokes (color + samples). Lets us share repro data, version drawings, persist work across sessions.
 - **Persistence** — autosave strokes to localStorage and restore on reload.
 - **Layers** — group strokes; hide / lock / reorder.
 - **Color palette** — quick-pick recent / favorite colors instead of opening the system picker.
@@ -43,5 +45,5 @@ Low-ceremony list of ideas. Add freely; move to **Done** when shipped.
 - Undo / redo toolbar buttons with disabled state
 - Select tool: click to select, drag to move, Delete to remove, dashed bbox overlay
 - Node editing with Gaussian falloff: drag a handle and surrounding samples follow with arc-length-weighted influence (reuses brush slider for σ)
-- Ribbon rendered with quadratic bezier smoothing through sample midpoints (no more visible polyline angles between samples)
+- Ribbon rendered with Catmull-Rom cubic bezier smoothing — curve passes through every sample, so node handles sit on the rendered line even after large deformations
 - Coalesced pointer events captured for denser, more uniform pen sampling

@@ -444,15 +444,18 @@ function smoothRailD(pts: Point[]): string {
   if (pts.length < 2) return '';
   if (pts.length === 2) return `L ${pts[1].x} ${pts[1].y}`;
   const cmds: string[] = [];
-  const m0x = (pts[0].x + pts[1].x) / 2;
-  const m0y = (pts[0].y + pts[1].y) / 2;
-  cmds.push(`L ${m0x} ${m0y}`);
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = (pts[i].x + pts[i + 1].x) / 2;
-    const my = (pts[i].y + pts[i + 1].y) / 2;
-    cmds.push(`Q ${pts[i].x} ${pts[i].y} ${mx} ${my}`);
+  const n = pts.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = i > 0 ? pts[i - 1] : pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = i + 2 < n ? pts[i + 2] : pts[i + 1];
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    cmds.push(`C ${c1x} ${c1y} ${c2x} ${c2y} ${p2.x} ${p2.y}`);
   }
-  cmds.push(`L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`);
   return cmds.join(' ');
 }
 

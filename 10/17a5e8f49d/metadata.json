@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.6.1",
+  "checkpoint_id": "1017a5e8f49d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "src/painter.test.ts",
+    "src/painter.ts",
+    "src/render.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/10/17a5e8f49d/0/metadata.json",
+      "transcript": "/10/17a5e8f49d/0/full.jsonl",
+      "content_hash": "/10/17a5e8f49d/0/content_hash.txt",
+      "prompt": "/10/17a5e8f49d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 624,
+    "cache_creation_tokens": 25855,
+    "cache_read_tokens": 2320935,
+    "output_tokens": 25002,
+    "api_call_count": 15
+  }
+}

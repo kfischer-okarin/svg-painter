@@ -1,0 +1,9 @@
+btw for more complex painter assertions it will probably be good to expose strokes too and not jus tpaths - we could even argue that maybe the renderer can just be used by the main.ts wrapper in the end.... so maybe let's even reframe it as renderedElements or something which then returns several kinds of objects like strokes, handles, selection frame etc
+
+---
+
+btw for more complex painter assertions it will probably be good to expose strokes too and not jus tpaths - we could even argue that maybe the renderer can just be used by the main.ts wrapper in the end.... so maybe let's even reframe it as renderedElements or something which then returns several kinds of objects like strokes, handles, selection frame polymorphically in render order (latest rendered top)
+
+---
+
+no sorry that's not what I meant.... let's banish the rendering call from the painter altogether and assert on the raw stroke object (which should be the polymorphic thing)

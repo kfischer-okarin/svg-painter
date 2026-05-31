@@ -1,0 +1,17 @@
+I want to properly test this project behaviorally to protect against regressions - let's drive refactor the basic behaviors into a humble object that has methods for each UI interaction you could have and a getter for the rendered svg content and other relevant menu state (fine to just expose this as a single menu state object)
+
+---
+
+ok sure go ahead but I approve
+
+---
+
+sorry ask me again to approve
+
+---
+
+sorry ask me again to approve
+
+---
+
+Do not extract all geometry ahead of time... create code only as required by actual test cases

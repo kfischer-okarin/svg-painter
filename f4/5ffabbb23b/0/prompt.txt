@@ -1,0 +1,1 @@
+When selecting any other path than the first one i selected I the path points do not appear and I cannot edit the path

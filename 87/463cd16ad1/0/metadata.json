@@ -1,0 +1,106 @@
+{
+  "cli_version": "0.6.1",
+  "checkpoint_id": "87463cd16ad1",
+  "session_id": "baa2796d-1879-4cab-a741-34a75f1ab69e",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-31T10:54:31.15741Z",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "src/painter.test.ts",
+    "src/painter.ts",
+    "src/render.test.ts",
+    "src/render.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "59909086fe2c",
+  "token_usage": {
+    "input_tokens": 10538,
+    "cache_creation_tokens": 212770,
+    "cache_read_tokens": 7332325,
+    "output_tokens": 85070,
+    "api_call_count": 81
+  },
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-31T10:54:31.142909Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 171,
+    "human_modified": 7,
+    "human_removed": 0,
+    "total_committed": 171,
+    "total_lines_changed": 178,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 234,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/plans/piped-hugging-sunset.md": 152,
+        ".claude/settings.local.json": 8,
+        "src/painter.test.ts": 22,
+        "src/painter.ts": 52
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 234,
+      "user_lines_removed": 0,
+      "agent_lines_added": 18,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/plans/piped-hugging-sunset.md": 152,
+        ".claude/settings.local.json": 8,
+        "src/painter.test.ts": 22,
+        "src/painter.ts": 52
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 182,
+      "user_lines_removed": 0,
+      "agent_lines_added": 85,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/plans/piped-hugging-sunset.md": 152,
+        ".claude/settings.local.json": 8,
+        "src/painter.test.ts": 22
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 168,
+      "user_lines_removed": 7,
+      "agent_lines_added": 117,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/plans/piped-hugging-sunset.md": 152,
+        ".claude/settings.local.json": 8,
+        "src/render.test.ts": 8
+      },
+      "user_removed_per_file": {
+        "src/render.test.ts": 7
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 160,
+      "user_lines_removed": 0,
+      "agent_lines_added": 124,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/plans/piped-hugging-sunset.md": 152,
+        ".claude/settings.local.json": 8
+      }
+    }
+  ]
+}

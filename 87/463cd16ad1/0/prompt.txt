@@ -1,0 +1,67 @@
+I want to properly test this project behaviorally to protect against regressions - let's drive refactor the basic behaviors into a humble object that has methods for each UI interaction you could have and a getter for the rendered svg content and other relevant menu state (fine to just expose this as a single menu state object)
+
+---
+
+ok sure go ahead but I approve
+
+---
+
+sorry ask me again to approve
+
+---
+
+sorry ask me again to approve
+
+---
+
+Do not extract all geometry ahead of time... create code only as required by actual test cases
+
+---
+
+ok go on
+
+---
+
+not sure I like this string representation approach is there some other approach that could be cleanly used by the main.ts wrapper to update actual svg dom elements accordingly
+
+---
+
+btw delete menu state for now before we need it (let's do menu state assertions separately anyways)
+
+---
+
+before we go on any further I want to seriously consider going into the geometry end of things for testing... is there a library that can simulate the svg rendering on a pixel basis for more so I could do geometric checks like whehter a point is inside the path etc... (and possibly assert the color too etc?)
+
+---
+
+before we go on any further I want to seriously consider going into the geometry end of things for testing... is there a library that can simulate the svg rendering on a pixel basis for more so I could do geometric checks like whehter a point is inside the path etc... (and possibly assert the color too etc?)
+
+---
+
+Wait we don't need any helper yet can you firs ttell me what you're trying to do ?
+
+---
+
+So let's insert a little side track here this is basically a standalone renderStrokePath function that gets a stroke and returns the path d I guess ? and we can assert on that as own unit test suite for all those render type tests... so let's add a test for the current single point render case we already support and then once we get to 2 point ribbon rendering we drive the ribbon rendering itself in that module too - but for now do the point render test only so we have a complete functional and rested unit
+
+---
+
+i see - can you extract some nicer private helper functions object make a renderPathD (btw what is... D !?) helper that returns some kind of object get has a getPixelAt(x, y) helper returning something nice
+
+---
+
+ok almost good i'm bothered by the faxct that the red color in the assertion comes "out of nowhere" (i.e. from the test helper incidental setup)
+
+But the real reason for that I guess is that we didn't give stroke a color yet - let's fix that right now.... so rendering test becomes explicit - you can have a separate test for that in the painter that just asserts the default color is black (i.e. paint anything and assert the path is black)
+
+---
+
+Ah i see no then let's restructure the render function instead let it not just calculate the d but rather return a Path which is literally a js plain object with the subset of relevant path dom object attributes (right now fill and d) - so drive/rewrite the renderer test to support that new api (no change to the painter test I guess because that should be a refactor)
+
+---
+
+ah sure yes go on
+
+---
+
+almost good - let's not assert the path fill but let's stay in pixel space so assert get pixel at 50, 50 to be the full red opaque pixel

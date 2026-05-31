@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Resvg } from '@resvg/resvg-js';
-import { renderStrokePath, type Path } from './render';
+import { renderElement, type Path } from './render';
+import type { SceneElement } from './painter';
 
 type Pixel = { r: number; g: number; b: number; a: number };
 
@@ -16,10 +17,15 @@ function rasterize(path: Path, size = 100) {
   };
 }
 
-describe('renderStrokePath', () => {
-  it('renders a single sample as a filled dot of its width', () => {
-    const path = renderStrokePath({ color: '#ff0000', samples: [{ x: 50, y: 50, w: 20 }] });
-    const raster = rasterize(path);
+describe('renderElement', () => {
+  it('renders a single-sample stroke as a filled dot of its width', () => {
+    const stroke: SceneElement = {
+      type: 'stroke',
+      id: 1,
+      color: '#ff0000',
+      samples: [{ x: 50, y: 50, w: 20 }],
+    };
+    const raster = rasterize(renderElement(stroke));
 
     // the dot covers its centre (radius 10) in solid red...
     expect(raster.getPixelAt(50, 50)).toEqual({ r: 255, g: 0, b: 0, a: 255 });

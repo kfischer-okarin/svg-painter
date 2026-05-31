@@ -1,12 +1,15 @@
-import type { Sample } from './painter';
+import type { SceneElement, Sample } from './painter';
 
 // The subset of SVG <path> attributes a stroke renders to.
 export type Path = { fill: string; d: string };
 
-type RenderableStroke = { color: string; samples: Sample[] };
-
-export function renderStrokePath(stroke: RenderableStroke): Path {
-  return { fill: stroke.color, d: pathData(stroke.samples) };
+// Polymorphic over the scene: each element type renders to its own SVG shape.
+// main.ts calls this once per element to reconcile the DOM.
+export function renderElement(element: SceneElement): Path {
+  switch (element.type) {
+    case 'stroke':
+      return { fill: element.color, d: pathData(element.samples) };
+  }
 }
 
 function pathData(samples: Sample[]): string {

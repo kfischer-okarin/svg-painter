@@ -1,5 +1,4 @@
-export type Point = { x: number; y: number };
-export type Sample = Point & { w: number };
+import type { Sample } from './painter';
 
 // The subset of SVG <path> attributes a stroke renders to.
 export type Path = { fill: string; d: string };

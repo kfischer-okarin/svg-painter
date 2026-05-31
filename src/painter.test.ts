@@ -2,30 +2,32 @@ import { describe, it, expect } from 'vitest';
 import { Painter } from './painter';
 
 describe('a fresh painter', () => {
-  it('has no rendered content', () => {
+  it('has an empty scene', () => {
     const painter = new Painter();
 
-    expect(painter.paths).toEqual([]);
+    expect(painter.elements).toEqual([]);
+  });
+
+  it('records new strokes in the default colour', () => {
+    const painter = new Painter();
+
+    painter.penDown({ x: 10, y: 20 });
+    painter.penUp();
+
+    expect(painter.elements[0].color).toBe('#222222');
   });
 });
 
 describe('the pen tool', () => {
-  it('draws one path when you press and release at a point', () => {
+  it('records one stroke with a sample at the pressed point', () => {
     const painter = new Painter();
 
     painter.penDown({ x: 10, y: 20 });
     painter.penUp();
 
-    expect(painter.paths).toHaveLength(1);
-    expect(painter.paths[0].d).not.toBe('');
-  });
-
-  it('paints new strokes with the default colour', () => {
-    const painter = new Painter();
-
-    painter.penDown({ x: 10, y: 20 });
-    painter.penUp();
-
-    expect(painter.paths[0].fill).toBe('#222222');
+    const els = painter.elements;
+    expect(els).toHaveLength(1);
+    expect(els[0]).toMatchObject({ type: 'stroke' });
+    expect(els[0].samples[0]).toMatchObject({ x: 10, y: 20 });
   });
 });

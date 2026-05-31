@@ -1,0 +1,1 @@
+ok let's close the new API circle right now while I still remember before finally continuing - let's make the current render method already into the polymorphic thing and use a proper Stroke object in the render test

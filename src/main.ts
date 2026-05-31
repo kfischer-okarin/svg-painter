@@ -318,9 +318,12 @@ function clearHandles() {
 }
 
 function ensureHandleGroup(): SVGGElement {
-  if (handleGroup && handleGroup.isConnected) return handleGroup;
-  handleGroup = document.createElementNS(SVG_NS, 'g');
-  handleGroup.setAttribute('id', 'handles');
+  if (!handleGroup) {
+    handleGroup = document.createElementNS(SVG_NS, 'g');
+    handleGroup.setAttribute('id', 'handles');
+  }
+  // Re-append so handles stay above strokes drawn after the group was created;
+  // appendChild moves an existing child to the end rather than duplicating it.
   svg.appendChild(handleGroup);
   return handleGroup;
 }
